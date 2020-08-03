@@ -1,0 +1,71 @@
+---
+- name: Download Filebeat Package
+  get_url:
+    url: https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.6.2-amd64.deb
+    dest: /tmp
+
+- name: Install FileBeat Deb Package
+  become: yes
+  apt:
+    deb: /tmp/filebeat-7.6.2-amd64.deb
+
+- name: Remove FileBeat YAML File
+  become: yes
+  file:
+    path: /etc/filebeat/filebeat.yml
+    state: absent
+
+- name: Create New FileBeat YAML File
+  become: yes
+  file:
+      path: /etc/filebeat/filebeat.yml
+      state: touch
+
+- name: Add FileBeat YAML Configuration
+  become: yes
+  blockinfile:
+      path: /etc/filebeat/filebeat.yml
+      marker: ""
+      block: |
+        filebeat:
+        filebeat.config.modules:
+          path: ${path.config}/modules.d/*.yml
+        setup.kibana.host: "localhost:5601"
+        output.elasticsearch:
+          hosts: ["http://localhost:9200"]
+
+- name: Enable Suricata modules
+  become: yes
+  shell: filebeat modules enable suricata
+
+- name: Remove Suricata modules File
+  become: yes
+  file:
+    path: /etc/filebeat/modules.d/suricata.yml
+    state: absent
+
+- name: Create New Suricata modules File
+  become: yes
+  file:
+      path: /etc/filebeat/modules.d/suricata.yml
+      state: touch
+
+- name: Add Suricata modules YAML Configuration
+  become: yes
+  blockinfile:
+      path: /etc/filebeat/modules.d/suricata.yml
+      marker: ""
+      block: |
+        - module: suricata
+          eve:
+            enabled: true
+            var.paths: ["/var/log/suricata/eve.json"]
+#- name: Push dashbords to kibana
+#  become: yes
+#  shell: filebeat setup            
+
+- name: Start FileBeat Service
+  become: yes
+  service:
+    name: filebeat
+    state: started

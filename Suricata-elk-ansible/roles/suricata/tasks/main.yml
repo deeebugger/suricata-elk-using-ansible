@@ -1,0 +1,41 @@
+---
+- name: Add Suricata APT repository
+  become: yes
+  apt_repository: repo='ppa:oisf/suricata-stable' state=present
+
+- name: update apt cache if needed
+  become: yes
+  apt:
+    update_cache=yes
+- name: Install required packages
+  become: yes
+  apt:
+     pkg:
+          - libpcre3
+          - libpcre3-dbg
+          - libpcre3-dev
+          - build-essential
+          - libpcap-dev
+          - libyaml-0-2
+          - libyaml-dev
+          - pkg-config
+          - zlib1g
+          - zlib1g-dev
+          - make
+          - libmagic-dev
+
+- name: Install required packages
+  become: yes
+  apt: pkg={{ item }} state=latest
+  with_items:
+          - suricata
+
+- name: Update Suricata
+  become: yes
+  shell: suricata-update
+
+- name: Start suricata Service
+  become: yes
+  service:
+    name: suricata
+    state: started
